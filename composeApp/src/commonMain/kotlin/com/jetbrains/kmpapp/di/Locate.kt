@@ -12,10 +12,18 @@ var onLocationUpdateCompose = {
 
 }
 
-var latitude = 11.0
-var longitude = 76.0
-fun locate(lt: Double, lg: Double) {
+
+
+const val latitude_KOTTAKKAL = 11.0
+var longitude_KOTTAKKAL = 76.0
+
+
+var latitude =latitude_KOTTAKKAL
+var longitude = longitude_KOTTAKKAL
+var placeName = "Location"
+fun locate(lt: Double, lg: Double,pn:String) {
+    placeName=pn
     latitude = lt
-    latitude = lg
+    longitude = lg
     onLocationUpdateCompose?.invoke()
 }

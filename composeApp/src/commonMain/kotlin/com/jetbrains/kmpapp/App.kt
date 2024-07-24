@@ -1,8 +1,15 @@
 package com.jetbrains.kmpapp
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,13 +18,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.azan.Azan
 import com.azan.Method
 import com.azan.astrologicalCalc.Location
 import com.azan.astrologicalCalc.SimpleDate
-import com.jetbrains.kmpapp.di.locate
+import com.jetbrains.kmpapp.di.latitude
+import com.jetbrains.kmpapp.di.latitude_KOTTAKKAL
+import com.jetbrains.kmpapp.di.longitude
+import com.jetbrains.kmpapp.di.longitude_KOTTAKKAL
 import com.jetbrains.kmpapp.di.onLocationUpdateCompose
+import com.jetbrains.kmpapp.di.placeName
 import com.jetbrains.kmpapp.di.requestLocation
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -42,34 +55,71 @@ fun App() {
 
     LaunchedEffect("") {
 
-        onLocationUpdateCompose={
-            arrayList.clear()
-            arrayList.addAll(getAthanObj(11.0, 76.0).getAthanOfDate(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).map {
 
-                val format = LocalDateTime.Format { byUnicodePattern("yyyy-MM-dd HH:mm:ss") }
-                format.format(it)
-            })
+
+        onLocationUpdateCompose = {
+            if (latitude== latitude_KOTTAKKAL&& longitude== longitude_KOTTAKKAL){
+                requestLocation()
+            }
+            PrefSetDouble("latitude", latitude)
+            PrefSetDouble("longitude", longitude)
+            PrefSetString("placeName", placeName)
+            arrayList.clear()
+            try {
+                arrayList.addAll(getAthanObj(latitude, longitude).getAthanOfDate(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).map {
+
+                    val format = LocalDateTime.Format { byUnicodePattern("HH:mm") }
+                    format.format(it)
+                })
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             refresher++
         }
-
-
-
-
+        latitude= PrefGetDouble("latitude")
+        longitude= PrefGetDouble("longitude")
+        placeName= PrefGetString("placeName")?:placeName
+        onLocationUpdateCompose.invoke()
+        refresher++
 
 
     }
     MaterialTheme {
         refresher.let {
-            Column {
-                arrayList.forEach {
-                    Text(it, color = Color.Red)
+
+            val brush = Brush.linearGradient(
+                //startX = 135.0f,
+                colors = listOf(
+                    Color(0xFF2B2B2B),
+                    Color(0xFF313335),
+                    Color(0xFF3C3F41)
+                )
+            )
+
+
+
+            Scaffold {
+                Column(modifier = Modifier.fillMaxSize().background(brush = brush)) {
+
+                    println("it.calculateTopPadding() ${it.calculateTopPadding()}")
+                    println("it.calculateBottomPadding() ${it.calculateBottomPadding()}")
+                    Spacer(modifier = Modifier.height(it.calculateTopPadding()))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text( if (placeName.isNullOrBlank()) "Fetching Location..." else placeName, color = Color.White,modifier = Modifier.clickable {
+                        requestLocation()
+                    })
+
+                    arrayList.forEach {
+                        Text(it, color = Color.White)
+                    }
+
+
+
                 }
-
-                Text("Request Location", modifier = Modifier.clickable {
-                    requestLocation()
-                })
-
             }
+
+
         }
 
         //Navigator(ListScreen)
@@ -95,7 +145,7 @@ fun getAthanObj(latitude: Double, longitude: Double): Azan {
 //        0
 //    }
 //
-    var tm = spInt("timeMethods", 0) //todo
+    var tm = PrefGetInt("timeMethods") //todo
 //
 //
 //    val gmtOffsetInMillis = defaultTimeZone.getRawOffset() / (3600000.0)
@@ -104,7 +154,7 @@ fun getAthanObj(latitude: Double, longitude: Double): Azan {
 
     println("offset ${offset.totalSeconds}")
     val dstOffsetInHours = 0 //todo
-    val offsetINHour= offset.totalSeconds.div(60*60.0)
+    val offsetINHour = offset.totalSeconds.div(60 * 60.0)
 
     println("latitude $latitude longitude $longitude offsetINHour ${offsetINHour} dstOffsetInHours ${dstOffsetInHours} ")
 
@@ -120,10 +170,10 @@ fun getAthanObj(latitude: Double, longitude: Double): Azan {
 //}
 
 fun Azan.getAthanOfDate(today: LocalDateTime): List<LocalDateTime> {
-    return getPrayerTimes(SimpleDate(24,7,2024)).times.mapIndexed { index, it ->
-        val adj = spInt("adjustment_$index", if (index == 2 || index == 3) 1 else 0)
+    return getPrayerTimes(SimpleDate(24, 7, 2024)).times.mapIndexed { index, it ->
+        val adj = PrefGetInt("adjustment_$index" /*if (index == 2 || index == 3) 1 else 0*/)
         println("prayerTimesMILLLI $it")
-       var a= LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, it.hour, it.minute, it.second)
+        var a = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, it.hour, it.minute, it.second)
             .toInstant(TimeZone.currentSystemDefault())
             .plus(Duration.parse("${adj}m")).toLocalDateTime(TimeZone.currentSystemDefault())
         a
@@ -186,10 +236,7 @@ val timeMethods: Array<Triple<Method, String, String>> = arrayOf(
 
     )
 
-//todo
-fun spInt(k: String, i: Int): Int {
-    return 0;
-}
+
 
 
 

@@ -16,3 +16,16 @@ fun createDataStore(producePath: () -> String): DataStore<Preferences> =
     )
 
 internal const val dataStoreFileName = "dice.preferences_pb"
+
+
+
+
+expect fun PrefGetInt(key: String) : Int
+expect fun PrefGetDouble(key: String) : Double
+expect fun PrefGetString(key: String) : String?
+
+expect fun PrefSetInt(key: String, value: Int)
+expect fun PrefSetDouble(key: String, value: Double)
+expect fun PrefSetString(key: String, value: String)
+
+
